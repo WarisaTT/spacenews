@@ -18,12 +18,12 @@ const routes = [
   },
   {
     path: '/register',
-    name: 'register',
+    name: 'Register',
     component: Register // กำหนดหน้า /post
   },
   {
     path: '/login',
-    name: 'login',
+    name: 'Login',
     component: Login // กำหนดหน้า /post
   },
   {
@@ -48,6 +48,49 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem("token")
+  const payload = localStorage.getItem("payload")
+
+  const publicRoutes = [
+    "Login",
+    "Register",
+  ];
+
+  if (token) {
+    try {
+      // ตรวจสอบ token ที่หมดอายุ
+      const parsedPayload = JSON.parse(payload);
+      const now = new Date().getTime();
+
+      // หาก token หมดอายุ ให้ลบข้อมูลและส่งกลับไปยังหน้า Login
+      if (parsedPayload.exp && now > parsedPayload.exp * 1000) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("payload");
+        alert("Your session has expired. Please log in again.");
+        return next({ name: "Login" });
+      }
+
+      // หากเข้าสู่ระบบแล้วและพยายามเข้าถึงหน้า Login หรือ Register
+      if (to.name === "Login" || to.name === "Register") {
+        return next({ name: "Home" });
+      }
+    } catch (error) {
+      console.error("Error parsing payload:", error);
+      localStorage.removeItem("token");
+      localStorage.removeItem("payload");
+      return next({ name: "Login" });
+    }
+  } else {
+    if (!publicRoutes.includes(to.name)) {
+      return next({ name: "Login" });
+    }
+  }
+
+  // Proceed with navigation
+  next()
 })
 
 export default router
