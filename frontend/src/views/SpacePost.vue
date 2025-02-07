@@ -14,8 +14,11 @@ import Like2 from '@/components/icons/like2.png'
 import Like3 from '@/components/icons/like3.png'
 import Comment from '@/components/icons/comment.png'
 import Sidebar from '@/components/Sidebar.vue'
-import CommentModal from '@/components/modals/CommentModal.vue'
+import Cancle from '@/components/icons/cancle.png'
+import Send from '@/components/icons/send.png'
+// import CommentModal from '@/components/modals/CommentModal.vue'
 import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { deletePost as deletePostFromAPI } from '@/libs/fetchPost'
 import { addComment } from '@/libs/fetchComments'
 import { fetchPostsByArea } from '@/libs/fetchPost' // นำเข้าฟังก์ชัน fetchPost
@@ -27,20 +30,19 @@ const posts = ref([])
 const comments = ref([])
 const error = ref('')
 const route = useRoute()
+const router = useRouter()
 const content = ref('')
 const areaId = parseInt(route.params.areaId) // ใช้ defaultAreaId แทนค่าconsole.log(areaId)
 // const areaId = ref(null)
 const areaName = ref('')
 const isModalOpen = ref(false) // สถานะสำหรับเปิด/ปิด Modal
 const isCommentModalOpen = ref(false) // สถานะสำหรับเปิด/ปิด Comment Modal
-const commentContent = ref('') // Content ของ comment ที่จะโพสต์
 const newComment = ref('')
-const newContent = ref('')
 const postIdForComment = ref(null)
 const currentPostId = ref(null)
 const currentPostContent = ref('')
+const optionsVisibleId = ref(null);
 
-// ฟังก์ชันเพื่อดึง Comments ของโพสต์
 const getCommentsByPost = async (postId) => {
     try {
         const fetchedComments = await fetchCommentsByPost(postId)
@@ -74,116 +76,72 @@ const formatTime = (dateString) => {
     }
 }
 
-// Fetch posts
 const getPostsByArea = async () => {
     try {
         if (isNaN(areaId)) {
-            throw new Error('Invalid areaId: Area ID must be a valid number')
+            throw new Error('Invalid areaId: Area ID must be a valid number');
         }
-        const fetchedPosts = await fetchPostsByArea(areaId)
-        console.log('Fetched Posts:', fetchedPosts) // ตรวจสอบโครงสร้างข้อมูล
+
+        const userId = localStorage.getItem('payload.userId'); // ดึง userId จาก localStorage
+        console.log('⭐️' + userId);
+        
+        const fetchedPosts = await fetchPostsByArea(areaId);
+        console.log('Fetched Posts:', fetchedPosts); // ตรวจสอบโครงสร้างข้อมูล
+
         posts.value = fetchedPosts.map((post) => {
             // แปลงวันที่ให้เป็นรูปแบบที่ต้องการ
-            const formattedDate = new Date(post.updatedAt)
-            const day = formattedDate.getDate().toString().padStart(2, '0')
-            const month = formattedDate
-                .toLocaleString('default', { month: 'short' })
-                .toUpperCase()
-            const year = formattedDate.getFullYear()
-            const hours = formattedDate.getHours().toString().padStart(2, '0')
-            const minutes = formattedDate.getMinutes().toString().padStart(2, '0')
+            const formattedDate = new Date(post.updatedAt);
+            const day = formattedDate.getDate().toString().padStart(2, '0');
+            const month = formattedDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+            const year = formattedDate.getFullYear();
+            const hours = formattedDate.getHours().toString().padStart(2, '0');
+            const minutes = formattedDate.getMinutes().toString().padStart(2, '0');
 
-            // สร้างวันที่ที่ต้องการ
-            const formattedDateString = `${day} ${month} ${year}   ${hours}:${minutes}`
+            const formattedDateString = `${day} ${month} ${year}   ${hours}:${minutes}`;
 
             return {
                 id: post.postId || 0,
                 username: post.user.username || 'Unknown',
-                fullname: post.user.fullName || 'Unknown', // ใช้ Optional Chaining เพื่อป้องกัน Error
-                date: formattedDateString || 'No date', // ใช้วันที่ที่จัดรูปแบบแล้ว
+                fullname: post.user.fullName || 'Unknown',
+                date: formattedDateString || 'No date',
                 content: post.content || 'No content',
-                likes: post.likes || 0,
-                likes_count: post.likes ? post.likes.length : 0, // คำนวณจำนวน likes
-                comments: post.comments || 0,
+                likes: post.likes || [], // ให้แน่ใจว่า likes เป็น array
+                likes_count: post.likes ? post.likes.length : 0,
+                comments: post.comments || [],
                 comments_count: post.comments ? post.comments.length : 0,
-                areaName: post.area.areaName || 'No area name'
-            }
-        })
+                areaName: post.area.areaName || 'No area name',
+                isLiked: post.likes.some(like => like.userId == userId) // ตรวจสอบว่าผู้ใช้ไลค์โพสต์นี้หรือไม่
+            };
+        });
 
         if (fetchedPosts.length > 0) {
-            areaName.value = fetchedPosts[0].area.areaName || 'Default Area Name'
+            areaName.value = fetchedPosts[0].area.areaName || 'Default Area Name';
         } else {
-            areaName.value = 'No posts available'
+            areaName.value = 'No posts available';
         }
     } catch (err) {
-        error.value = err.message || 'Error fetching posts'
-        console.error('Error fetching posts:', err)
+        error.value = err.message || 'Error fetching posts';
+        console.error('Error fetching posts:', err);
     }
-}
+};
 
-// ฟังก์ชันเปิด Modal (add)
 const openModal = () => {
     currentPostId.value = null
     currentPostContent.value = ''
     isModalOpen.value = true
 }
 
-// ฟังก์ชันปิด Modal
 const closeModal = () => {
     isModalOpen.value = false;
-    currentPostId.value = null; // Reset postId
+    currentPostId.value = null;
     getPostsByArea();
 };
 
-// Fetch posts on component mount
 onMounted(async () => {
     await getPostsByArea()
     isModalOpen.value = false
     isCommentModalOpen.value = false
 })
-
-// ฟังก์ชันเปิด Comment Modal
-const openCommentModal = (postId) => {
-    if (typeof postId !== 'number' || postId <= 0 || !Number.isInteger(postId)) {
-        console.error('Invalid postId: Post ID must be a positive integer')
-        closeCommentModal() // ปิด Modal ในกรณีที่ `postId` ไม่ถูกต้อง
-        return
-    }
-
-    // เรียกใช้งานฟังก์ชัน fetch ที่นี่
-    postIdForComment.value = postId
-    getCommentsByPost(postId)
-    isCommentModalOpen.value = true // เปิด Modal หลังจากตรวจสอบ `postId` แล้ว
-}
-
-// ฟังก์ชันปิด Comment Modal
-const closeCommentModal = () => {
-    isCommentModalOpen.value = false
-    commentContent.value = '' // ล้างข้อความใน comment
-    getPostsByArea()
-}
-
-const handleAddComment = async () => {
-    if (newComment.value.trim()) {
-        if (!id || isNaN(id)) {
-            alert('Invalid post ID')
-            return // หยุดการทำงานหาก postId ไม่ถูกต้อง
-        }
-
-        try {
-            // เรียกใช้ฟังก์ชัน addComment จาก fetchComment.js
-            await addComment(newComment.value, id) // ส่งคอมเมนต์และ postId
-            newComment.value = '' // ล้างข้อความหลังจากส่งแล้ว
-            emit('addComment', { comment: newComment.value, postId: postId }) // ถ้าต้องการอัพเดตคอมเมนต์ใน parent
-        } catch (error) {
-            console.error('Failed to add comment:', error)
-        }
-    } else {
-        alert('Please enter a comment')
-    }
-}
-
-const optionsVisibleId = ref(null); // Holds the ID of the post with visible options
 
 const toggleOptions = (postId) => {
     optionsVisibleId.value = optionsVisibleId.value === postId ? null : postId;
@@ -198,7 +156,6 @@ const deletePost = async (postId) => {
         await deletePostFromAPI(postId);
         alert('Post deleted successfully');
         getPostsByArea()
-        // อาจจะต้องรีเฟรชโพสต์หรือเรียก fetchPostsByArea เพื่ออัพเดตหน้าจอ
     } catch (error) {
         alert('Error deleting post: ' + error.message);
     }
@@ -210,14 +167,13 @@ const openEditModal = (post) => {
     isModalOpen.value = true  // เปิด Modal
 }
 
-const searchQuery = ref('')  // ตัวแปรสำหรับเก็บค่าค้นหาจากผู้ใช้
+const searchQuery = ref('')
 const filteredPosts = computed(() => {
     return posts.value.filter((post) => {
         return post.content.toLowerCase().includes(searchQuery.value.toLowerCase()) // กรองโพสต์ตามคำค้นหา
     })
 })
 
-// Toggle like for a post
 const toggleLike = async (postId) => {
     const post = posts.value.find(p => p.id === postId);
     if (!post) return;
@@ -225,15 +181,44 @@ const toggleLike = async (postId) => {
     try {
         if (post.isLiked) {
             await deleteLike(postId);
+            post.likes_count -= 1;
+            post.isLiked = false;
         } else {
             await addLike(postId);
+            post.likes_count += 1;
+            post.isLiked = true;
         }
-        post.isLiked = !post.isLiked;
     } catch (error) {
         console.error('Error toggling like:', error);
     }
 };
 
+const openCommentModal = (postId) => {
+    postIdForComment.value = postId
+    getCommentsByPost(postId)
+    isCommentModalOpen.value = true
+}
+
+const closeCommentModal = () => {
+    isCommentModalOpen.value = false
+    newComment.value = ''
+    router.back()
+}
+
+const handleAddComment = async () => {
+    if (newComment.value.trim()) {
+        try {
+            await addComment(newComment.value, postIdForComment.value)
+            newComment.value = ''
+            getCommentsByPost(postIdForComment.value)
+            getPostsByArea() // อัพเดตจำนวนคอมเมนต์ในโพสต์
+        } catch (error) {
+            console.error('Failed to add comment:', error)
+        }
+    } else {
+        alert('Please enter a comment')
+    }
+}
 
 </script>
 
@@ -243,7 +228,6 @@ const toggleLike = async (postId) => {
             <Header :title="areaName" />
         </div>
         <div class="flex flex-1 h-screen pt-[50px]">
-            <!-- Sidebar Section -->
             <Sidebar />
 
             <!-- Main Content Section -->
@@ -289,13 +273,11 @@ const toggleLike = async (postId) => {
                                     {{ post.date }}
                                 </div>
                             </div>
-                            <!-- ปุ่ม Edit -->
                             <button @click="toggleOptions(post.id)"
                                 class="flex justify-end ml-auto p-3 rounded-full hover:scale-110">
                                 <img :src="Edit" alt="Edit Icon" class="w-8 h-2" />
                             </button>
 
-                            <!-- ตัวเลือกเมื่อกดปุ่ม -->
                             <div v-if="isOptionsVisible(post.id)"
                                 class="absolute bg-white shadow-lg rounded-lg mt-24 right-5 w-28">
                                 <button @click="openEditModal(post)"
@@ -305,7 +287,8 @@ const toggleLike = async (postId) => {
                                 </button>
 
                                 <Post v-if="isModalOpen" :isModalOpen="isModalOpen" :initialContent="currentPostContent"
-                                    :postId="currentPostId" @close="closeModal" @post="getPostsByArea" :areaName="areaName" />
+                                    :postId="currentPostId" @close="closeModal" @post="getPostsByArea"
+                                    :areaName="areaName" />
 
                                 <button @click="deletePost(post.id)"
                                     class="flex gap-5 w-full text-left p-2 pl-3 rounded-b-lg hover:bg-gray-900 font-itim text-white bg-black">
@@ -331,16 +314,10 @@ const toggleLike = async (postId) => {
                                 class="w-1/2 flex gap-4 justify-center items-center hover:bg-[#4D5A55] h-8 rounded-lg"
                                 @click="toggleLike(post.id)">
                                 <img :src="post.isLiked ? Like3 : Like2" alt="Like Icon" class="w-6 h-6" />
-                                <p class="text-white font-itim text-lg">{{ post.isLiked ? 'Like' : 'Like' }}</p>
+                                <p class="text-white font-itim text-lg">{{ post.isLiked ? 'Liked' : 'Like' }}</p>
                             </button>
+
                             <!-- Comment Button -->
-
-                            <!-- <button @click="openCommentModal(post.postId)"
-                                class="w-1/2 flex gap-4 justify-center items-center hover:bg-[#4D5A55] h-8 rounded-lg">
-                                <img :src="Comment" alt="Comment Icon Click" class="w-6 h-6" />
-                                <p class="text-white font-itim text-lg">Comment {{ post.comments_count }} </p>
-                            </button> -->
-
                             <router-link :to="{ path: `/comments/${post.id}` }"
                                 @click.native.prevent="openCommentModal(post.id)"
                                 class="w-1/2 flex gap-4 justify-center items-center hover:bg-[#4D5A55] h-8 rounded-lg">
@@ -352,9 +329,42 @@ const toggleLike = async (postId) => {
                 </div>
             </div>
         </div>
+
         <!-- Comments section with scroll -->
-        <CommentModal :isOpen="isCommentModalOpen" :comments="comments" :postId="postIdForComment"
-            @close="closeCommentModal" @addComment="handleAddComment" />
+        <div v-if="isCommentModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-black p-5 rounded-3xl w-[700px] h-[500px] flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex-1 text-center font-itim text-white text-[35px]">Comments</div>
+                    <button @click="closeCommentModal" class="rounded-full bg-white hover:bg-opacity-75 p-2">
+                        <img :src="Cancle" alt="cancel icon" class="w-4 h-4">
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto flex-grow max-h-[300px]">
+                    <div v-if="comments.length">
+                        <div v-for="comment in comments" :key="comment.id" class="flex flex-col ml-5 font-itim">
+                            <div class="flex gap-3">
+                                <div class="font-itim text-[22px] text-white">{{ comment.username || 'No name' }}</div>
+                                <div class="font-itim text-[12px] mt-3 text-[#60706A]">{{ comment.time }}</div>
+                            </div>
+                            <div class="text-[#B0AEAE] text-[20px] font-light ">{{ comment.comment }}</div>
+                            <hr class="mt-2 mr-5 rounded-full border-[#434343] border">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col flex-grow justify-end">
+                    <div class="flex items-center bg-[#808181] p-1 rounded-full">
+                        <input v-model="newComment" type="text" placeholder="Add a comment..."
+                            class="flex-1 px-6 py-2 bg-transparent rounded-full focus:outline-none text-white placeholder-[#CCCDCD] font-itim"
+                            @keydown.enter="handleAddComment" />
+                        <button @click="handleAddComment">
+                            <img :src="Send" alt="Send Icon" class="w-11 h-4 px-3" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
