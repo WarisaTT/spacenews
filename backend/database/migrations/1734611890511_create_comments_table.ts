@@ -6,7 +6,7 @@ export default class Comments extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('comment_id')
-      table.integer('post_id').unsigned().references('posts.post_id')
+      table.integer('post_id').unsigned().references('posts.post_id').onDelete('CASCADE')
       table.integer('user_id').unsigned().references('users.user_id')
       table.text('comment')
       table.timestamps(true)

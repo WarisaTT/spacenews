@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import Header from '@/components/Header.vue'
 import Profile from '@/components/icons/profile-user.png'
 import Clear from '@/components/icons/clear2.png'
@@ -32,9 +32,8 @@ const error = ref('')
 const route = useRoute()
 const router = useRouter()
 const content = ref('')
-const areaId = parseInt(route.params.areaId) // ใช้ defaultAreaId แทนค่าconsole.log(areaId)
-// const areaId = ref(null)
-const areaName = ref('')
+let areaId = parseInt(route.params.areaId) // ใช้ defaultAreaId แทนค่าconsole.log(areaId)
+const areaName = route.query.areaName;  // อ่าน areaName จาก query
 const isModalOpen = ref(false) // สถานะสำหรับเปิด/ปิด Modal
 const isCommentModalOpen = ref(false) // สถานะสำหรับเปิด/ปิด Comment Modal
 const newComment = ref('')
@@ -78,13 +77,12 @@ const formatTime = (dateString) => {
 
 const getPostsByArea = async () => {
     try {
+        const payloadString = localStorage.getItem('payload'); 
+        const payload = JSON.parse(payloadString); 
+        const userId = payload.userId; 
         if (isNaN(areaId)) {
             throw new Error('Invalid areaId: Area ID must be a valid number');
         }
-
-        const userId = localStorage.getItem('payload.userId'); // ดึง userId จาก localStorage
-        console.log('⭐️' + userId);
-        
         const fetchedPosts = await fetchPostsByArea(areaId);
         console.log('Fetched Posts:', fetchedPosts); // ตรวจสอบโครงสร้างข้อมูล
 
@@ -110,7 +108,7 @@ const getPostsByArea = async () => {
                 comments: post.comments || [],
                 comments_count: post.comments ? post.comments.length : 0,
                 areaName: post.area.areaName || 'No area name',
-                isLiked: post.likes.some(like => like.userId == userId) // ตรวจสอบว่าผู้ใช้ไลค์โพสต์นี้หรือไม่
+                isLiked: post.likes.some(like => like.userId == userId)
             };
         });
 
@@ -124,6 +122,12 @@ const getPostsByArea = async () => {
         console.error('Error fetching posts:', err);
     }
 };
+
+// เมื่อค่า areaId เปลี่ยน ให้โหลดโพสต์ใหม่
+watch(() => route.params.areaId, (newAreaId) => {
+    areaId = parseInt(newAreaId);
+    getPostsByArea();
+});
 
 const openModal = () => {
     currentPostId.value = null
@@ -314,7 +318,7 @@ const handleAddComment = async () => {
                                 class="w-1/2 flex gap-4 justify-center items-center hover:bg-[#4D5A55] h-8 rounded-lg"
                                 @click="toggleLike(post.id)">
                                 <img :src="post.isLiked ? Like3 : Like2" alt="Like Icon" class="w-6 h-6" />
-                                <p class="text-white font-itim text-lg">{{ post.isLiked ? 'Liked' : 'Like' }}</p>
+                                <p class="text-white font-itim text-lg">{{ post.isLiked ? 'Like' : 'Like' }}</p>
                             </button>
 
                             <!-- Comment Button -->
