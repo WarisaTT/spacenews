@@ -1,4 +1,4 @@
-import { jwtDecode } from "jwt-decode"; // นำเข้า jwtDecode ให้ถูกต้อง
+import { jwtDecode } from "jwt-decode";
 
 // ฟังก์ชัน Login
 async function Login(url, obj, setErrorMessage) {
@@ -45,7 +45,6 @@ async function Login(url, obj, setErrorMessage) {
   }
 }
 
-// ฟังก์ชัน Register
 async function Register(url, obj) {
   try {
     const response = await fetch(url, {
@@ -70,4 +69,4 @@ async function Register(url, obj) {
     throw error;
   }
 }
-export default { Login, Register }; // ใช้ export ชัดเจน
+export default { Login, Register }; 

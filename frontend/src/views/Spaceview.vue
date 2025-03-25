@@ -23,18 +23,17 @@ const handleAddArea = async () => {
   await addArea(newAreaName, newAreaDescription, areas, showModal);
 };
 
-// Computed property to filter areas based on the search query
 const filteredAreas = computed(() => {
+  console.log(areas)
   const searchText = searchQuery.value.toLowerCase();
   return areas.value.filter(area => {
     const areaName = area.areaName ? area.areaName.toLowerCase() : '';
-    const areaDescription = area.areaDescription ? area.areaDescription.toLowerCase() : '';
+    const areaDescription = area.description ? area.description.toLowerCase() : '';
 
     return areaName.includes(searchText) || areaDescription.includes(searchText);
   });
 });
 
-// Clear search query
 const clearSearch = () => {
   searchQuery.value = '';
 };

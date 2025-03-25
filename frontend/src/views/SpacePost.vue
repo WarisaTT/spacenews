@@ -8,6 +8,7 @@ import DeletePost from '@/components/icons/delete-post.png'
 import Post from '@/components/modals/PostModal.vue'
 import Search from '@/components/icons/searchIcon2.png'
 import Sort from '@/components/icons/sort1.png'
+import Sort2 from '@/components/icons/sortWhite.png'
 import Edit from '@/components/icons/etc.png'
 import Like from '@/components/icons/like1.png'
 import Like2 from '@/components/icons/like2.png'
@@ -32,15 +33,17 @@ const error = ref('')
 const route = useRoute()
 const router = useRouter()
 const content = ref('')
-let areaId = parseInt(route.params.areaId) // ใช้ defaultAreaId แทนค่าconsole.log(areaId)
-const areaName = route.query.areaName;  // อ่าน areaName จาก query
+let areaId = parseInt(route.params.areaId)
+const areaName = route.query.areaName // อ่าน areaName จาก query
 const isModalOpen = ref(false) // สถานะสำหรับเปิด/ปิด Modal
 const isCommentModalOpen = ref(false) // สถานะสำหรับเปิด/ปิด Comment Modal
 const newComment = ref('')
 const postIdForComment = ref(null)
 const currentPostId = ref(null)
 const currentPostContent = ref('')
-const optionsVisibleId = ref(null);
+const optionsVisibleId = ref(null)
+const searchQuery = ref('')
+const userName = JSON.parse(localStorage.getItem('payload')).username
 
 const getCommentsByPost = async (postId) => {
     try {
@@ -59,43 +62,46 @@ const getCommentsByPost = async (postId) => {
 const formatTime = (dateString) => {
     const now = new Date()
     const commentTime = new Date(dateString)
-    const diffInSeconds = Math.floor((now - commentTime) / 1000) // แปลงเป็นวินาที
+    const diffInSeconds = Math.floor((now - commentTime) / 1000)
 
-    if (diffInSeconds < 60) {
-        return `${diffInSeconds} s.` // แสดงวินาที
+    if (diffInSeconds < 1) {
+        return 'now'
+    } else if (diffInSeconds < 60) {
+        return `${diffInSeconds} s.`
     } else if (diffInSeconds < 3600) {
         const diffInMinutes = Math.floor(diffInSeconds / 60)
-        return `${diffInMinutes} m.` // แสดงนาที
+        return `${diffInMinutes} m.`
     } else if (diffInSeconds < 86400) {
         const diffInHours = Math.floor(diffInSeconds / 3600)
-        return `${diffInHours} hr.` // แสดงชั่วโมง
+        return `${diffInHours} hr.`
     } else {
         const diffInDays = Math.floor(diffInSeconds / 86400)
-        return `${diffInDays} day` // แสดงวัน
+        return `${diffInDays} day`
     }
 }
 
 const getPostsByArea = async () => {
     try {
-        const payloadString = localStorage.getItem('payload'); 
-        const payload = JSON.parse(payloadString); 
-        const userId = payload.userId; 
+        const payloadString = localStorage.getItem('payload')
+        const payload = JSON.parse(payloadString)
+        const userId = payload.userId
         if (isNaN(areaId)) {
-            throw new Error('Invalid areaId: Area ID must be a valid number');
+            throw new Error('Invalid areaId: Area ID must be a valid number')
         }
-        const fetchedPosts = await fetchPostsByArea(areaId);
-        console.log('Fetched Posts:', fetchedPosts); // ตรวจสอบโครงสร้างข้อมูล
+        const fetchedPosts = await fetchPostsByArea(areaId)
 
         posts.value = fetchedPosts.map((post) => {
             // แปลงวันที่ให้เป็นรูปแบบที่ต้องการ
-            const formattedDate = new Date(post.updatedAt);
-            const day = formattedDate.getDate().toString().padStart(2, '0');
-            const month = formattedDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-            const year = formattedDate.getFullYear();
-            const hours = formattedDate.getHours().toString().padStart(2, '0');
-            const minutes = formattedDate.getMinutes().toString().padStart(2, '0');
+            const formattedDate = new Date(post.updatedAt)
+            const day = formattedDate.getDate().toString().padStart(2, '0')
+            const month = formattedDate
+                .toLocaleString('default', { month: 'short' })
+                .toUpperCase()
+            const year = formattedDate.getFullYear()
+            const hours = formattedDate.getHours().toString().padStart(2, '0')
+            const minutes = formattedDate.getMinutes().toString().padStart(2, '0')
 
-            const formattedDateString = `${day} ${month} ${year}   ${hours}:${minutes}`;
+            const formattedDateString = `${day} ${month} ${year}   ${hours}:${minutes}`
 
             return {
                 id: post.postId || 0,
@@ -108,26 +114,28 @@ const getPostsByArea = async () => {
                 comments: post.comments || [],
                 comments_count: post.comments ? post.comments.length : 0,
                 areaName: post.area.areaName || 'No area name',
-                isLiked: post.likes.some(like => like.userId == userId)
-            };
-        });
+                isLiked: post.likes.some((like) => like.userId == userId)
+            }
+        })
 
         if (fetchedPosts.length > 0) {
-            areaName.value = fetchedPosts[0].area.areaName || 'Default Area Name';
+            areaName.value = fetchedPosts[0].area.areaName || 'Default Area Name'
         } else {
-            areaName.value = 'No posts available';
+            areaName.value = 'No posts available'
         }
     } catch (err) {
-        error.value = err.message || 'Error fetching posts';
-        console.error('Error fetching posts:', err);
+        error.value = err.message || 'Error fetching posts'
     }
-};
+}
 
 // เมื่อค่า areaId เปลี่ยน ให้โหลดโพสต์ใหม่
-watch(() => route.params.areaId, (newAreaId) => {
-    areaId = parseInt(newAreaId);
-    getPostsByArea();
-});
+watch(
+    () => route.params.areaId,
+    (newAreaId) => {
+        areaId = parseInt(newAreaId)
+        getPostsByArea()
+    }
+)
 
 const openModal = () => {
     currentPostId.value = null
@@ -136,10 +144,10 @@ const openModal = () => {
 }
 
 const closeModal = () => {
-    isModalOpen.value = false;
-    currentPostId.value = null;
-    getPostsByArea();
-};
+    isModalOpen.value = false
+    currentPostId.value = null
+    getPostsByArea()
+}
 
 onMounted(async () => {
     await getPostsByArea()
@@ -148,54 +156,48 @@ onMounted(async () => {
 })
 
 const toggleOptions = (postId) => {
-    optionsVisibleId.value = optionsVisibleId.value === postId ? null : postId;
-};
+    optionsVisibleId.value = optionsVisibleId.value === postId ? null : postId
+}
 
 const isOptionsVisible = (postId) => {
-    return optionsVisibleId.value === postId;
-};
+    return optionsVisibleId.value === postId
+}
 
 const deletePost = async (postId) => {
     try {
-        await deletePostFromAPI(postId);
-        alert('Post deleted successfully');
+        await deletePostFromAPI(postId)
+        alert('Post deleted successfully')
         getPostsByArea()
     } catch (error) {
-        alert('Error deleting post: ' + error.message);
+        alert('Error deleting post: ' + error.message)
     }
-};
+}
 
 const openEditModal = (post) => {
     currentPostId.value = post.id
     currentPostContent.value = post.content
-    isModalOpen.value = true  // เปิด Modal
+    isModalOpen.value = true
 }
 
-const searchQuery = ref('')
-const filteredPosts = computed(() => {
-    return posts.value.filter((post) => {
-        return post.content.toLowerCase().includes(searchQuery.value.toLowerCase()) // กรองโพสต์ตามคำค้นหา
-    })
-})
 
 const toggleLike = async (postId) => {
-    const post = posts.value.find(p => p.id === postId);
-    if (!post) return;
+    const post = posts.value.find((p) => p.id === postId)
+    if (!post) return
 
     try {
         if (post.isLiked) {
-            await deleteLike(postId);
-            post.likes_count -= 1;
-            post.isLiked = false;
+            await deleteLike(postId)
+            post.likes_count -= 1
+            post.isLiked = false
         } else {
-            await addLike(postId);
-            post.likes_count += 1;
-            post.isLiked = true;
+            await addLike(postId)
+            post.likes_count += 1
+            post.isLiked = true
         }
     } catch (error) {
-        console.error('Error toggling like:', error);
+        console.error('Error toggling like:', error)
     }
-};
+}
 
 const openCommentModal = (postId) => {
     postIdForComment.value = postId
@@ -215,7 +217,7 @@ const handleAddComment = async () => {
             await addComment(newComment.value, postIdForComment.value)
             newComment.value = ''
             getCommentsByPost(postIdForComment.value)
-            getPostsByArea() // อัพเดตจำนวนคอมเมนต์ในโพสต์
+            getPostsByArea()
         } catch (error) {
             console.error('Failed to add comment:', error)
         }
@@ -224,6 +226,25 @@ const handleAddComment = async () => {
     }
 }
 
+const sortByLikes = ref(false) 
+const toggleSort = () => {
+    sortByLikes.value = !sortByLikes.value 
+}
+const filteredAndSortedPosts = computed(() => {
+    // กรองโพสต์ตามคำค้นหา
+    let filtered = posts.value.filter((post) => {
+        return post.content.toLowerCase().includes(searchQuery.value.toLowerCase())
+    })
+
+    // การจัดเรียงโพสต์ตามการตั้งค่าการกรอง
+    if (sortByLikes.value) {
+        return filtered.sort((a, b) => b.likes_count - a.likes_count) 
+    } else {
+        return filtered.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        ) 
+    }
+})
 </script>
 
 <template>
@@ -260,12 +281,19 @@ const handleAddComment = async () => {
                             <img :src="Clear" alt="Clear Icon" class="w-4 h-4 mx-2" />
                         </button>
                     </div>
-                    <div class="md:w-2/6 rounded-full border border-[#335C67] border-2 flex items-center">
-                        <img :src="Sort" alt="Sort Icon" class="w-13 h-6 mx-2" />
-                        <p class="font-itim text-[#335C67] text-lg p-1 px-16">DATED ADD</p>
-                    </div>
+                    <button
+                        class="md:w-2/6 rounded-full border border-[#335C67] border-2 flex items-center transition-all duration-300"
+                        @click="toggleSort" :class="{
+                            'bg-[#335C67] text-white': sortByLikes,
+                            'bg-transparent text-[#335C67]': !sortByLikes
+                        }">
+                        <img :src="sortByLikes ? Sort2 : Sort" alt="Sort Icon" class="w-13 h-6 mx-2" />
+                        <p class="font-itim text-lg p-1 px-16">
+                            {{ sortByLikes ? 'POPULAR' : 'DATED ADD' }}
+                        </p>
+                    </button>
                 </div>
-                <div v-for="post in filteredPosts" :key="post.postId" class="w-5/6 flex items-center">
+                <div v-for="post in filteredAndSortedPosts" :key="post.postId" class="w-5/6 flex items-center">
                     <div class="bg-[#60706A] w-full rounded-lg flex flex-col h-[205px]">
                         <div class="m-5 flex gap-4 items-center">
                             <img :src="Profile" alt="Profile Icon" class="w-17 h-10" />
@@ -277,7 +305,7 @@ const handleAddComment = async () => {
                                     {{ post.date }}
                                 </div>
                             </div>
-                            <button @click="toggleOptions(post.id)"
+                            <button v-if="post.username === userName" @click="toggleOptions(post.id)"
                                 class="flex justify-end ml-auto p-3 rounded-full hover:scale-110">
                                 <img :src="Edit" alt="Edit Icon" class="w-8 h-2" />
                             </button>
@@ -286,7 +314,7 @@ const handleAddComment = async () => {
                                 class="absolute bg-white shadow-lg rounded-lg mt-24 right-5 w-28">
                                 <button @click="openEditModal(post)"
                                     class="flex gap-5 w-full text-left p-2 pl-3 rounded-t-lg hover:bg-gray-900 font-itim text-white bg-black">
-                                    <img :src="EditPost" alt="edit icon" class="w-5 mt-[-0.2px]">
+                                    <img :src="EditPost" alt="edit icon" class="w-5 mt-[-0.2px]" />
                                     Edit
                                 </button>
 
@@ -296,7 +324,7 @@ const handleAddComment = async () => {
 
                                 <button @click="deletePost(post.id)"
                                     class="flex gap-5 w-full text-left p-2 pl-3 rounded-b-lg hover:bg-gray-900 font-itim text-white bg-black">
-                                    <img :src="DeletePost" alt="delete icon" class="w-5 mt-[-0.2px]">
+                                    <img :src="DeletePost" alt="delete icon" class="w-5 mt-[-0.2px]" />
                                     Delete
                                 </button>
                             </div>
@@ -311,14 +339,16 @@ const handleAddComment = async () => {
                                 {{ post.comments_count }} comments
                             </p>
                         </div>
-                        <hr class="w-[780px] rounded-full flex items-center mt-2 mx-auto" />
+                        <hr class="w-[850px] rounded-full flex items-center mt-2 mx-auto" />
                         <div class="flex ml-5 mr-5 mt-1">
                             <!-- Like Button -->
                             <button
                                 class="w-1/2 flex gap-4 justify-center items-center hover:bg-[#4D5A55] h-8 rounded-lg"
                                 @click="toggleLike(post.id)">
                                 <img :src="post.isLiked ? Like3 : Like2" alt="Like Icon" class="w-6 h-6" />
-                                <p class="text-white font-itim text-lg">{{ post.isLiked ? 'Like' : 'Like' }}</p>
+                                <p class="text-white font-itim text-lg">
+                                    {{ post.isLiked ? 'Like' : 'Like' }}
+                                </p>
                             </button>
 
                             <!-- Comment Button -->
@@ -338,9 +368,11 @@ const handleAddComment = async () => {
         <div v-if="isCommentModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div class="bg-black p-5 rounded-3xl w-[700px] h-[500px] flex flex-col">
                 <div class="flex justify-between items-center mb-3">
-                    <div class="flex-1 text-center font-itim text-white text-[35px]">Comments</div>
+                    <div class="flex-1 text-center font-itim text-white text-[35px]">
+                        Comments
+                    </div>
                     <button @click="closeCommentModal" class="rounded-full bg-white hover:bg-opacity-75 p-2">
-                        <img :src="Cancle" alt="cancel icon" class="w-4 h-4">
+                        <img :src="Cancle" alt="cancel icon" class="w-4 h-4" />
                     </button>
                 </div>
 
@@ -348,11 +380,17 @@ const handleAddComment = async () => {
                     <div v-if="comments.length">
                         <div v-for="comment in comments" :key="comment.id" class="flex flex-col ml-5 font-itim">
                             <div class="flex gap-3">
-                                <div class="font-itim text-[22px] text-white">{{ comment.username || 'No name' }}</div>
-                                <div class="font-itim text-[12px] mt-3 text-[#60706A]">{{ comment.time }}</div>
+                                <div class="font-itim text-[22px] text-white">
+                                    {{ comment.username || 'No name' }}
+                                </div>
+                                <div class="font-itim text-[12px] mt-3 text-[#60706A]">
+                                    {{ comment.time }}
+                                </div>
                             </div>
-                            <div class="text-[#B0AEAE] text-[20px] font-light ">{{ comment.comment }}</div>
-                            <hr class="mt-2 mr-5 rounded-full border-[#434343] border">
+                            <div class="text-[#B0AEAE] text-[20px] font-light">
+                                {{ comment.comment }}
+                            </div>
+                            <hr class="mt-2 mr-5 rounded-full border-[#434343] border" />
                         </div>
                     </div>
                 </div>
