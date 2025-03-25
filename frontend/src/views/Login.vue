@@ -48,10 +48,6 @@ const showError = (message) => {
         <img :src="SpaceImage" alt="" class="rounded-t-[70px]" />
         <p class="p-2 pl-8 text-black font-smath text-3xl font-bold pb-[-200px]">Login</p>
         
-        <!-- Error and Success Messages -->
-        <div v-if="errorMessage" class="text-red-500 text-center">{{ errorMessage }}</div>
-        <div v-if="successMessage" class="text-green-500 text-center">{{ successMessage }}</div>
-
         <!-- Username Input -->
         <div class="bg-[#9F2B2B] mx-8 py-2 px-7 rounded-3xl flex">
           <img :src="Username" alt="Username form Icon" class="w-10" />
@@ -73,14 +69,21 @@ const showError = (message) => {
             class="flex-1 px-4 bg-transparent rounded-full focus:outline-none text-[#E7E1E1] placeholder:text-[#D9D4D4] placeholder:font-smath text-lg" 
           />
         </div>
+                <!-- Error and Success Messages -->
+                <!-- Error Message (พื้นที่คงที่) -->
+        <div class="h-4 mt-[-10px] text-red-500 text-center">
+          <span v-if="errorMessage">{{ errorMessage }}</span>
+        </div>
 
         <!-- Login Button -->
         <button 
           @click="userLogin"
-          class="bg-[#13B84F] mx-8 mt-4 py-2 px-7 flex items-center justify-center border border-2 border-black font-smath text-white text-xl rounded-lg shadow-md hover:bg-[#0E9A3D] hover:shadow-lg active:scale-95 transition-all duration-300"
+          class="bg-[#13B84F] mx-8 py-2 mt-1 px-7 flex items-center justify-center border border-2 border-black font-smath text-white text-xl rounded-lg shadow-md hover:bg-[#0E9A3D] hover:shadow-lg active:scale-95 transition-all duration-300"
         >
           Login
         </button>
+        
+
 
         <!-- Link to Register -->
         <div class="text-black font-smath flex items-center justify-center">

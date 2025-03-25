@@ -26,22 +26,50 @@ export default class UsersController {
       // ใช้ LoginUserValidator เพื่อ validate ข้อมูลที่รับมาจาก request
       const payload = await request.validateUsing(LoginUserValidator)
 
-      // ถ้าผ่าน validation ก็สามารถบันทึกผู้ใช้ใหม่ได้
+      // ตรวจสอบว่า username นี้มีอยู่แล้วในระบบหรือไม่
+      const existingUser = await User.findBy('username', payload.username)
+
+      if (existingUser) {
+        // ถ้ามี username นี้อยู่แล้ว
+        return response.status(422).json({
+          message: 'The username has already been taken.',
+        })
+      }
+
+      // ถ้าไม่มี username นี้ในระบบก็สามารถสร้างผู้ใช้ใหม่ได้
       const user = await User.create({
         username: payload.username,
         password: payload.password,
       })
 
-      return response.status(201).json({
-        message: `The user ${user.username} has been registered successfully.`,
-        data: { username: user.username, email: user.email },
+      // ตรวจสอบการสร้างผู้ใช้ใหม่
+      if (user) {
+        // ถ้าสำเร็จ ส่งข้อความการลงทะเบียนสำเร็จพร้อมกับ redirect ไปที่หน้า login
+        return response.status(201).json({
+          message: `The user ${user.username} has been registered successfully. Please login.`,
+        })
+      }
+
+      // ถ้าการบันทึกผู้ใช้ไม่สำเร็จ ให้ส่ง error
+      return response.status(400).json({
+        message: 'Registration failed. Please try again.',
       })
     } catch (error) {
       console.error(error) // Log ข้อผิดพลาดที่เกิดขึ้น
-      return response.status(400).json({
-        message: 'An error occurred while registering the user.',
-        error: error,
+
+      // หากมีข้อผิดพลาดเกี่ยวกับ validation ให้แสดง error message ที่เกี่ยวข้อง
+      if (error.code === 'E_VALIDATION_ERROR' && error.messages && error.messages.length > 0) {
+        return response.status(422).json({
+          message: error.messages[0].message, // แสดงข้อความแรกจาก messages
+        })
+      }
+
+      // หากไม่ใช่ข้อผิดพลาดที่เกี่ยวข้องกับ validation
+      return response.status(500).json({
+        message: 'An unexpected error occurred.',
+        error: error.message, // แสดง error message ที่เกิดขึ้น
       })
     }
   }
+
 }

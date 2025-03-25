@@ -64,10 +64,10 @@ async function Register(url, obj) {
     const res = await response.json();
     console.log(res);
     
-    return res 
+    return res;
   } catch (error) {
     console.error("Registration error:", error);
-    throw error
+    throw error;
   }
 }
 export default { Login, Register }; // ใช้ export ชัดเจน
