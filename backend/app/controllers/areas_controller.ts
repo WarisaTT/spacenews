@@ -3,22 +3,18 @@ import Area from '../models/area.js'
 
 export default class AreasController {
   public async index({ response }: HttpContext) {
-    try {
       const areas = await Area.all()
       return response.ok(areas)
-    } catch (error) {
-      return response.internalServerError({ error: 'Unable to fetch areas' })
-    }
   }
-
-  // public async show({ params }: HttpContext) {
-  //   return Area.findOrFail(params.id)
-  // }
 
   public async store({ request }: HttpContext) {
     const data = request.only(['areaName', 'description'])
     return Area.create(data)
   }
+  
+  // public async show({ params }: HttpContext) {
+  //   return Area.findOrFail(params.id)
+  // }
 
   // public async update({ params, request }: HttpContext) {
   //   const area = await Area.findOrFail(params.id)

@@ -27,7 +27,10 @@ export default class LikesController {
     const userId = request.input('user_id')
     const postId = request.input('post_id')
 
-    const like = await Like.query().where('post_id', postId).where('user_id', userId).firstOrFail()
+    const like = await Like.query()
+      .where('post_id', postId)
+      .where('user_id', userId)
+      .firstOrFail()
 
     await like.delete()
     return { message: 'Like removed successfully' }
