@@ -37,12 +37,6 @@ const routes = [
       modal: (route) => ({ postId: parseInt(route.params.postId, 10) })
     }
   }
-  // ,{
-  //   path: '/area/:areaId/posts',
-  //   name: 'Post',
-  //   component: Post, // กำหนดหน้า /post
-  //   props: route => ({ areaId: parseInt(route.params.areaId, 10) })
-  // },
 ]
 
 const router = createRouter({
